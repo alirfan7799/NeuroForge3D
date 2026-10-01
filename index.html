@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroForge-3D — Interactive 3D Neural Architecture Simulator</title>
+  <meta name="description" content="State-of-the-art interactive 3D neural network simulator powered by WebGL (Three.js), TensorFlow.js, Web Workers, and Chart.js.">
+
+  <!-- Favicon / Brand Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f0ff'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css">
+
+  <!-- External Library CDNs -->
+  <!-- Chart.js 4.x -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Modern Import Map for Three.js ES Modules -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div id="app-shell">
+
+    <!-- Top Application Header & Transport Controls -->
+    <header id="app-header">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-title">NeuroForge<span class="text-cyan">3D</span></div>
+        <span class="brand-badge">TensorFlow.js + Three.js</span>
+      </div>
+
+      <!-- Architecture Switcher -->
+      <nav class="arch-switcher" aria-label="Architecture Switcher">
+        <button class="btn-arch-tab active" data-arch="mlp" id="tab-mlp">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="3"/><circle cx="12" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><circle cx="19" cy="12" r="3"/></svg>
+          MLP (Dense)
+        </button>
+        <button class="btn-arch-tab" data-arch="cnn" id="tab-cnn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          CNN (Feature Maps)
+        </button>
+        <button class="btn-arch-tab" data-arch="lstm" id="tab-lstm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12a8 8 0 0 1 16 0 8 8 0 0 1-16 0z"/><path d="M12 6v6l4 2"/></svg>
+          LSTM (Recurrent)
+        </button>
+      </nav>
+
+      <!-- Training Playback Transport Deck -->
+      <div class="header-actions">
+        <div class="control-row" style="gap: 8px;">
+          <label for="select-dataset" style="font-size: 0.76rem; color: var(--text-dim);">Dataset:</label>
+          <select id="select-dataset" class="select-control">
+            <option value="spiral">Spiral (Non-Linear)</option>
+            <option value="moons">Two Moons</option>
+            <option value="circles">Concentric Circles</option>
+            <option value="xor">XOR Quadrants</option>
+          </select>
+        </div>
+
+        <button id="btn-train-toggle" class="btn-action btn-primary" title="Start/Pause Background Training Loop">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span>Train Model</span>
+        </button>
+
+        <button id="btn-step-epoch" class="btn-action btn-secondary" title="Execute single training epoch">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          <span>Step 1</span>
+        </button>
+
+        <button id="btn-reset-weights" class="btn-action btn-secondary" title="Re-initialize network weights">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Reset</span>
+        </button>
+
+        <button id="btn-surge-signal" class="btn-action btn-secondary" title="Simulate forward and backprop signal pulses">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Surge Wave</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Simulator Workspace -->
+    <main id="workbench-area">
+
+      <!-- Left Sidebar: Architecture & Hyperparameter Deck -->
+      <aside class="sidebar sidebar-left" aria-label="Architecture Controls">
+
+        <!-- MLP Architecture Controls -->
+        <div id="panel-mlp-config" class="hud-panel">
+          <div class="panel-title">
+            <span>MLP <span class="accent">Topology</span></span>
+            <span id="param-count-badge" class="badge-tag">Calculating...</span>
+          </div>
+
+          <div class="control-row">
+            <span>Layers:</span>
+            <strong id="topology-badge" class="text-cyan font-mono" style="font-size: 0.78rem;">2 → 8 → 8 → 2</strong>
+          </div>
+
+          <div class="control-row" style="gap: 8px;">
+            <button id="btn-add-layer" class="btn-action btn-secondary" style="flex: 1; padding: 4px 8px; font-size: 0.72rem;">+ Layer</button>
+            <button id="btn-remove-layer" class="btn-action btn-secondary" style="flex: 1; padding: 4px 8px; font-size: 0.72rem;">- Layer</button>
+          </div>
+
+          <div class="control-row">
+            <span>Activation:</span>
+            <select id="select-activation" class="select-control">
+              <option value="relu">ReLU</option>
+              <option value="tanh">Tanh</option>
+              <option value="sigmoid">Sigmoid</option>
+              <option value="elu">ELU</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CNN Architecture Info (shown when CNN tab is active) -->
+        <div id="panel-cnn-config" class="hud-panel" style="display: none;">
+          <div class="panel-title">
+            <span>CNN <span class="accent">Pipeline</span></span>
+            <span class="badge-tag">4 Feature Maps</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.5;">
+            <p>• <strong>Input:</strong> 8×8 Pixel Matrix</p>
+            <p>• <strong>Conv2D:</strong> 4 Filters (3×3 Kernels)</p>
+            <p>• <strong>MaxPool2D:</strong> 2×2 Spatial Pooling</p>
+            <p>• <strong>Dense:</strong> 64 Flattens → 8 Hidden</p>
+            <p>• <strong>Output:</strong> 3-Class Softmax (Ring, Bar, Cross)</p>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px;">
+            Hover any 3D feature voxel or receptive field prism to inspect activation values.
+          </div>
+        </div>
+
+        <!-- LSTM Architecture Info (shown when LSTM tab is active) -->
+        <div id="panel-lstm-config" class="hud-panel" style="display: none;">
+          <div class="panel-title">
+            <span>LSTM <span class="accent">Memory Cell</span></span>
+            <span class="badge-tag">Recurrent</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.5;">
+            <p>• <span class="text-amber">Forget Gate (f_t)</span>: σ(W_f · [h, x])</p>
+            <p>• <span class="text-emerald">Input Gate (i_t)</span>: σ(W_i · [h, x])</p>
+            <p>• <span class="text-cyan">Candidate (~C_t)</span>: tanh(W_c · [h, x])</p>
+            <p>• <span style="color: #a855f7;">Output Gate (o_t)</span>: σ(W_o · [h, x])</p>
+          </div>
+        </div>
+
+        <!-- Hyperparameters Deck -->
+        <div class="hud-panel">
+          <div class="panel-title">
+            <span>Hyper<span class="accent">parameters</span></span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-labels">
+              <span>Learning Rate (α)</span>
+              <strong id="val-lr">0.030</strong>
+            </div>
+            <input type="range" id="slider-lr" min="0.001" max="0.2" step="0.005" value="0.03">
+          </div>
+
+          <div class="control-row">
+            <span>Target Epochs:</span>
+            <select id="select-target-epochs" class="select-control">
+              <option value="0">Continuous (Manual)</option>
+              <option value="50">50 Epochs</option>
+              <option value="100">100 Epochs</option>
+              <option value="200">200 Epochs</option>
+              <option value="500">500 Epochs</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <span>Batch Size:</span>
+            <select id="select-batch-size" class="select-control">
+              <option value="16">16 Samples</option>
+              <option value="32" selected>32 Samples</option>
+              <option value="64">64 Samples</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <span>Optimizer:</span>
+            <select id="select-optimizer" class="select-control">
+              <option value="adam">Adam</option>
+              <option value="sgd">SGD + Momentum</option>
+              <option value="rmsprop">RMSprop</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- System Architecture Diagnostics -->
+        <div class="hud-panel">
+          <div class="panel-title">
+            <span>Engine <span class="accent">Pipeline</span></span>
+            <span class="badge-tag" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">Active</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.4;">
+            <p>• <strong>Threading:</strong> Dedicated Web Worker</p>
+            <p>• <strong>Rendering:</strong> 60 FPS WebGL / Three.js</p>
+            <p>• <strong>Math Backend:</strong> TensorFlow.js 4.x</p>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- Center 3D WebGL Viewport -->
+      <section id="viewport-area" aria-label="3D Neural Network Viewport">
+        <div id="canvas-container"></div>
+
+        <!-- Floating 3D Camera Preset & Explosion Controls -->
+        <nav class="floating-camera-deck" aria-label="Camera Controls">
+          <button class="btn-cam-preset active" data-preset="default">Default</button>
+          <button class="btn-cam-preset" data-preset="iso">Isometric</button>
+          <button class="btn-cam-preset" data-preset="front">Frontal</button>
+          <button class="btn-cam-preset" data-preset="top">Top Slice</button>
+          <button class="btn-cam-preset" data-preset="side">Lateral</button>
+
+          <div class="camera-divider"></div>
+
+          <div class="camera-slider-wrap">
+            <span>Explode Layers:</span>
+            <input type="range" id="slider-explode" min="0.6" max="2.2" step="0.1" value="1.0" style="width: 80px;" title="Adjust 3D spacing between neural layers">
+          </div>
+        </nav>
+
+        <!-- Raycaster Tooltip HUD -->
+        <div id="neuron-tooltip"></div>
+      </section>
+
+      <!-- Right Sidebar: Live Analytics & Decision Boundary -->
+      <aside class="sidebar sidebar-right" aria-label="Live Telemetry Dashboard">
+
+        <!-- Convergence Metrics -->
+        <div class="hud-panel">
+          <div class="panel-title">
+            <span>Live <span class="accent">Telemetry</span></span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Epoch</div>
+              <div class="stat-value text-cyan" id="stat-epoch">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Loss</div>
+              <div class="stat-value text-magenta" id="stat-loss">0.000</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Accuracy</div>
+              <div class="stat-value text-emerald" id="stat-acc">0%</div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <canvas id="metrics-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- 2D Decision Boundary Contour & Probe Pad (for MLP) -->
+        <div id="boundary-box" class="hud-panel">
+          <div class="panel-title">
+            <span>Decision <span class="accent">Boundary</span></span>
+            <span class="badge-tag">Click to Probe</span>
+          </div>
+
+          <div class="boundary-box-inner">
+            <canvas id="boundary-canvas" width="280" height="280"></canvas>
+            <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text-muted);">
+              <span><span style="color: #ff2a85;">●</span> Class 0</span>
+              <span style="color: var(--text-dim);">Contour (P = 0.5)</span>
+              <span><span style="color: #00f0ff;">●</span> Class 1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gradient Flow Spectrum -->
+        <div class="hud-panel">
+          <div class="panel-title">
+            <span>Gradient <span class="accent">Spectrum</span></span>
+            <span class="badge-tag">||∂L/∂W||</span>
+          </div>
+
+          <div id="gradient-spectrum-bars">
+            <div class="spectrum-row">
+              <span class="spectrum-label">L1</span>
+              <div class="spectrum-track"><div class="spectrum-fill" style="width: 0%;"></div></div>
+              <span class="spectrum-val">0.0000</span>
+            </div>
+            <div class="spectrum-row">
+              <span class="spectrum-label">L2</span>
+              <div class="spectrum-track"><div class="spectrum-fill" style="width: 0%;"></div></div>
+              <span class="spectrum-val">0.0000</span>
+            </div>
+            <div class="spectrum-row">
+              <span class="spectrum-label">L3</span>
+              <div class="spectrum-track"><div class="spectrum-fill" style="width: 0%;"></div></div>
+              <span class="spectrum-val">0.0000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Architecture Inference Output -->
+        <div class="hud-panel" id="panel-inference-output">
+          <div class="panel-title">
+            <span id="inference-title">Inference <span class="accent">Output</span></span>
+            <span id="inference-status-badge" class="badge-tag">Untrained</span>
+          </div>
+
+          <div id="inference-bars-container" class="prediction-bars">
+            <!-- Dynamically populated per architecture -->
+            <div class="pred-row">
+              <span style="color: #ff2a85; font-weight: 600;">Class 0</span>
+              <div class="pred-track"><div id="pred-bar-0" class="pred-fill class-0" style="width: 0%;"></div></div>
+              <span id="pred-val-0" class="font-mono" style="font-size: 0.72rem;">0%</span>
+            </div>
+            <div class="pred-row">
+              <span style="color: #00f0ff; font-weight: 600;">Class 1</span>
+              <div class="pred-track"><div id="pred-bar-1" class="pred-fill class-1" style="width: 0%;"></div></div>
+              <span id="pred-val-1" class="font-mono" style="font-size: 0.72rem;">0%</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Master Application Script (ES Module) -->
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>

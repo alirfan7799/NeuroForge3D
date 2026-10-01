@@ -113,16 +113,3 @@ python serve.py
 | **Concurrency** | HTML5 Web Workers API | Off-thread asynchronous matrix computations (Zero main-thread blocking) |
 | **Data Telemetry** | [Chart.js](https://www.chartjs.org/) (v4.4), Canvas API | Dual-axis real-time convergence charts & 2D decision contour rasterization |
 | **Styling & UI/UX** | Modern Vanilla CSS3, Glassmorphism | Custom design tokens, backdrop filters, responsive flex/grid layouts |
-
----
-
-## 💼 Resume / CV Bullet Points
-
-Feel free to adapt these bullet points for your resume or LinkedIn portfolio:
-
-> **NeuroForge-3D — Interactive 3D Neural Architecture Simulator**  
-> *Tech Stack: Three.js (WebGL), TensorFlow.js, Web Workers, Chart.js, Vanilla ES6+*  
-> • Engineered a browser-based 3D neural network visualizer modeling forward/backward propagation and weight/bias gradients across MLP, CNN, and LSTM architectures.  
-> • Implemented an asynchronous Web Worker computing pipeline for TensorFlow.js training, maintaining a rock-solid 60+ FPS Three.js rendering loop without main-thread blocking.  
-> • Developed a real-time analytics suite featuring live 2D decision boundary contour mapping and synchronized Chart.js loss/accuracy convergence telemetry.  
-> • Integrated real-time gradient tracking ($\|\partial L / \partial W\|$) via `tf.variableGrads` to dynamically visualize and detect vanishing/exploding gradients across deep layers.

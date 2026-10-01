@@ -22,11 +22,14 @@ Powered by **Three.js**, **TensorFlow.js**, **Web Workers**, and **Chart.js**, N
 ## 🚀 Key Engineering Highlights
 
 ### 1. Asynchronous Web Worker Compute Pipeline (Zero UI Freezing)
+
 In standard browser ML applications, running iterative backpropagation on the main thread locks up the UI and drops frames. NeuroForge-3D decouples rendering from computation:
+
 - **Background Worker (`engine.worker.js`):** Executes mini-batch training (`model.fit()`), tensor gradient tracking (`tf.variableGrads`), validation evaluation, and $32 \times 32$ decision boundary grid inference.
 - **Main Thread (`viewport.js` & `app.js`):** Focuses solely on 60 FPS Three.js WebGL scene graph rendering, raycasting hover detection, and Chart.js telemetry updates.
 
 ### 2. Multi-Architecture Deep Learning Support
+
 - 🌐 **Multi-Layer Perceptron (MLP):** Configurable fully connected layers. Visualizes forward signal surges in **Electric Cyan** and backpropagation gradient waves in **Neon Magenta**. Synapses dynamically reflect weight values through sign color-coding and opacity scaling ($|w|$).
 - 📦 **Convolutional Neural Network (CNN):** 3D feature map volumes showing 2D input convolution, an animated $3 \times 3$ scanning receptive-field kernel prism, Max-Pooling spatial reduction, 25% Dropout regularization, and dense projections.
 - 🔁 **Long Short-Term Memory (LSTM):** 3D Recurrent Memory Cell detailing the **Cell State Highway ($C_t$)**, **Hidden State Highway ($h_t$)**, and the 4 fundamental gating units:
@@ -36,10 +39,12 @@ In standard browser ML applications, running iterative backpropagation on the ma
   - **Output Gate ($o_t = \sigma(W_o \cdot [h, x] + b_o)$)**
 
 ### 3. Live 2D Decision Boundary & Click-to-Probe Inference
+
 - Real-time contour surface updated as training progresses across classic machine learning benchmarks (**Archimedean Spiral**, **Two Moons**, **Concentric Circles**, and **XOR Quadrants**).
 - **Click-to-Probe:** Click anywhere on the 2D canvas to drop an interactive targeting reticle; the network immediately runs single-sample inference, surges the signal through the 3D network, and outputs softmax class confidence percentages.
 
 ### 4. Mathematical Gradient Diagnostics
+
 - Tracks layer-by-layer Euclidean gradient norms ($\|\partial L / \partial W\|$) in real time via `tf.variableGrads` to visibly demonstrate detection of **vanishing** and **exploding** gradients.
 
 ---
@@ -75,6 +80,7 @@ NeuroForge3D/
 ## ⚡ Quick Start
 
 ### Option A: Local Development (Python 3)
+
 NeuroForge-3D is built using standard ES modules and CDNs with zero npm build configuration required:
 
 ```bash
@@ -90,6 +96,7 @@ python serve.py
 ```
 
 ### Option B: One-Click Deployment (GitHub Pages)
+
 1. Push this repository to GitHub.
 2. Go to **Settings** $\to$ **Pages**.
 3. Under **Branch**, select `main` and `/ (root)`, then click **Save**.
@@ -119,9 +126,3 @@ Feel free to adapt these bullet points for your resume or LinkedIn portfolio:
 > • Implemented an asynchronous Web Worker computing pipeline for TensorFlow.js training, maintaining a rock-solid 60+ FPS Three.js rendering loop without main-thread blocking.  
 > • Developed a real-time analytics suite featuring live 2D decision boundary contour mapping and synchronized Chart.js loss/accuracy convergence telemetry.  
 > • Integrated real-time gradient tracking ($\|\partial L / \partial W\|$) via `tf.variableGrads` to dynamically visualize and detect vanishing/exploding gradients across deep layers.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — feel free to use, modify, and distribute for educational and commercial purposes.
